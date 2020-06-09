@@ -23,6 +23,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  intl: ^0.15.7
+  flutter_masked_text: ^0.7.0
 
 
   # The following adds the Cupertino Icons font to your application.

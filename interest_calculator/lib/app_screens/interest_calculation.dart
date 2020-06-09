@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_masked_text/flutter_masked_text.dart';
+import '../util/decimal_input_formatter.dart';
 
 class InterestForm extends StatefulWidget {
   @override
@@ -8,7 +12,7 @@ class InterestForm extends StatefulWidget {
 }
 
 class _InterestFormState extends State<InterestForm> {
-  var _currencies = ["INR", "SGD", "USD"];
+  var _period = ["Years", "Months", "Days"];
   final _minimumPadding = 5.0;
   var _currentItemSelected = '';
   var displayResult = "";
@@ -17,12 +21,13 @@ class _InterestFormState extends State<InterestForm> {
   @override
   void initState() {
     super.initState();
-    _currentItemSelected = _currencies[0];
+    _currentItemSelected = _period[0];
   }
 
-  TextEditingController principalController = TextEditingController();
-  TextEditingController roiController = TextEditingController();
-  TextEditingController termController = TextEditingController();
+  var principalController =
+      MoneyMaskedTextController(decimalSeparator: '.', thousandSeparator: ',');
+  var roiController = TextEditingController();
+  var termController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +48,12 @@ class _InterestFormState extends State<InterestForm> {
                   padding: EdgeInsets.only(
                       top: _minimumPadding, bottom: _minimumPadding),
                   child: TextFormField(
-                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      DecimalTextInputFormatter(decimalRange: 2)
+                    ],
+                    keyboardType: TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     style: textStyle,
                     validator: (String value) {
                       if (value.isEmpty) {
@@ -67,7 +77,11 @@ class _InterestFormState extends State<InterestForm> {
                   padding: EdgeInsets.only(
                       top: _minimumPadding, bottom: _minimumPadding),
                   child: TextFormField(
-                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      DecimalTextInputFormatter(decimalRange: 4)
+                    ],
+                    keyboardType:
+                        TextInputType.numberWithOptions(decimal: true),
                     style: textStyle,
                     controller: roiController,
                     validator: (String value) {
@@ -95,6 +109,9 @@ class _InterestFormState extends State<InterestForm> {
                         Expanded(
                             child: TextFormField(
                           keyboardType: TextInputType.number,
+                          inputFormatters: <TextInputFormatter>[
+                            WhitelistingTextInputFormatter.digitsOnly
+                          ],
                           validator: (String value) {
                             if (value.isEmpty) {
                               return 'Please enter Term';
@@ -116,7 +133,7 @@ class _InterestFormState extends State<InterestForm> {
                         Container(width: _minimumPadding * 5),
                         Expanded(
                             child: DropdownButton<String>(
-                          items: _currencies.map((String value) {
+                          items: _period.map((String value) {
                             return DropdownMenuItem<String>(
                               child: Text(value),
                               value: value,
@@ -139,7 +156,7 @@ class _InterestFormState extends State<InterestForm> {
                             color: Theme.of(context).accentColor,
                             textColor: Theme.of(context).primaryColorDark,
                             child: Text(
-                              'Calcualte',
+                              'Calculate',
                               textScaleFactor: 1.5,
                             ),
                             onPressed: () {
@@ -199,14 +216,22 @@ class _InterestFormState extends State<InterestForm> {
   }
 
   String _calculateTotalReturns() {
-    double principal = double.parse(principalController.text);
+    double principal = principalController.numberValue;
     double roi = double.parse(roiController.text);
     double term = double.parse(termController.text);
 
     double totalPayable = principal + (principal * roi * term) / 100;
 
+    String formattedTerm =
+        term.toString().replaceAll(RegExp(r"([.]*0)(?!.*\d)"), "");
+
+    var numberFormat = new NumberFormat("#,##0.00", "en_US");
+
+    String formattedTotalPayable = numberFormat.format(totalPayable);
+
     String result =
-        'After $term years, your investment will be worth $totalPayable $_currentItemSelected';
+        'After $formattedTerm $_currentItemSelected, your investment will be worth $formattedTotalPayable ';
+
     return result;
   }
 
@@ -215,6 +240,6 @@ class _InterestFormState extends State<InterestForm> {
     roiController.text = '';
     termController.text = '';
     displayResult = '';
-    _currentItemSelected = _currencies[0];
+    _currentItemSelected = _period[0];
   }
 }
